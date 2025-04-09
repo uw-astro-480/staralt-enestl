@@ -1,5 +1,5 @@
 [project]
-name = "astr-480-assignments-template"
+name = "staralt"
 version = "0.1.0"
 description = "Template to create ASTR 480 assignments"
 readme = "README.md"
