@@ -37,6 +37,12 @@ def get_altitude(coords_string, date_string):
     obs_location = EarthLocation(lat=41.3*u.deg, lon=-74*u.deg, height=0*u.m)
     object_altaz = coords.transform_to(AltAz(obstime=date, location=obs_location))
 
+    # Convert to float
+    if isinstance(coords_string, list):
+        return [alt.item() for alt in object_altaz.alt.deg]
+    else:
+        return object_altaz.alt.deg.item()
+
     # Return value for altitude
     print(f"Object's Altitude = {object_altaz.alt}")
     return object_altaz
