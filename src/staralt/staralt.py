@@ -6,31 +6,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, AltAz, EarthLocation, get_body
+from astropy.coordinates import SkyCoord, AltAz, EarthLocation, get_body, get_sun
 from astropy.coordinates import ICRS, Galactic, FK4, FK5
 import astropy.units as u
 
 
 def get_altitude(coords_string, date_string):
-    """Returns the altitude of the object at the given date.
-
-    Parameters
-    ----------
-    coords
-        An astropy SkyCoord object with the coordinates of the object.
-    date
-        An astropy Time object with the date-time of the observation.
-
-    Returns
-    -------
-    altitude
-        The altitude of the object in degrees, as a float.
-
-    """
-    # Takes inputs for form: 
-    # (["1:33:50.89 +30:39:36.633", "5:14:32.3 -8:12:5.1"], "2025-4-10 23:00:00")
-    
-    #Transforming coords_string and date_string into SkyCoords and astropy Time variables
+    #Takes inputs for form: (["1:33:50.89 +30:39:36.633"], "2025-4-10 23:00:00")
     coords = SkyCoord(coords_string, unit=(u.hourangle, u.deg), frame='icrs')
     date = Time(date_string)
 
@@ -49,18 +31,12 @@ def get_altitude(coords_string, date_string):
     return object_altaz
 
 
-
-#def plot_altitude(coords_string, date_string):
 def plot_altitude():
-    #date = date_string.split()[0]
-    #time = Time(f"{date} 20:00:00")
+    # Set initial variables
     coords_string = ["1:33:50.89 +30:39:36.633"]
-    #date_string = "2025-4-11 23:00:00"
-    #date = date_string.split()[0]
     date = "2025-4-11"
     time = Time(F"{date} 20:00:00")
-    
-    time_intervals = np.linspace(0, 16, 80) * u.hour  # 80 time steps over 12 hours
+    time_intervals = np.linspace(0, 16, 80) * u.hour
     all_times = time + time_intervals
     observer_location = EarthLocation.of_site('Apache Point Observatory')
 
@@ -68,17 +44,42 @@ def plot_altitude():
 
     plt.figure(figsize=(10, 6))
 
+    # Gets all coordinates over the time intervals
     for coord in coords_string:
         obj = SkyCoord(coord, unit=(u.hourangle, u.deg), frame='icrs')
         obj_altaz = obj.transform_to(altaz_frame)
         plt.plot(all_times.datetime, obj_altaz.alt.deg, label=f"Object: {coord}")
 
+    # Plot moon data
     moon = get_body('moon', time=all_times, location=observer_location)
     moon_altaz = moon.transform_to(altaz_frame)
     plt.plot(all_times.datetime, moon_altaz.alt.deg, label='Moon', color='red')
 
+    # Twilight and Sunset
+    sun = get_sun(all_times)
+    sun_altaz = sun.transform_to(altaz_frame)
+
+    sunset_idx = np.where(np.diff(np.sign(sun_altaz.alt.deg)) < 0)[0]
+    if len(sunset_idx) > 0:
+        sunset_time = all_times[sunset_idx[0]]
+        plt.axvline(sunset_time.datetime, color='yellow', linestyle='--', label='Sunset')
+
+    twilight_idx = np.where((sun_altaz.alt.deg < -6) & (np.roll(sun_altaz.alt.deg, 1) > -6))[0]
+    if len(twilight_idx) > 0:
+        twilight_time = all_times[twilight_idx[0]]
+        plt.axvline(twilight_time.datetime, color='purple', linestyle='--', label='Twilight')
+
+    # LST
+    #st_hours = observer_location.local_sidereal_time(all_times)
+    lst_hours = all_times.sidereal_time('mean', longitude=observer_location.lon)
+    lst_labels = [f"{lst:.1f}" for lst in lst_hours.hour]
+    for i in range(0, len(all_times), 15):  # sparse labeling
+        plt.text(all_times.datetime[i], -15, f"LST: {lst_labels[i]}h", rotation=90, fontsize=8, ha='center', color='gray')
+
+
+    # Generate plot and save to folder
     plt.title("Altitude Plot (Object and Moon)")
-    plt.xlabel("Time")
+    plt.xlabel("Time (Date-Hour)")
     plt.ylabel("Altitude (degrees)")
     plt.axhline(0, color='gray', linestyle='--', label='Horizon')
     plt.legend()
