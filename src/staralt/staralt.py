@@ -50,10 +50,17 @@ def get_altitude(coords_string, date_string):
 
 
 
-def plot_altitude(coords_string, date_string):
-    date = date_string.split()[0]
-    time = Time(f"{date} 20:00:00")
-    time_intervals = np.linspace(0, 12, 80) * u.hour  # 80 time steps over 12 hours
+#def plot_altitude(coords_string, date_string):
+def plot_altitude():
+    #date = date_string.split()[0]
+    #time = Time(f"{date} 20:00:00")
+    coords_string = ["1:33:50.89 +30:39:36.633"]
+    #date_string = "2025-4-11 23:00:00"
+    #date = date_string.split()[0]
+    date = "2025-4-11"
+    time = Time(F"{date} 20:00:00")
+    
+    time_intervals = np.linspace(0, 16, 80) * u.hour  # 80 time steps over 12 hours
     all_times = time + time_intervals
     observer_location = EarthLocation.of_site('Apache Point Observatory')
 
@@ -61,24 +68,23 @@ def plot_altitude(coords_string, date_string):
 
     plt.figure(figsize=(10, 6))
 
-    for coord_str in coords_string:
-        obj = SkyCoord(coord_str, unit=(u.hourangle, u.deg), frame='icrs')
+    for coord in coords_string:
+        obj = SkyCoord(coord, unit=(u.hourangle, u.deg), frame='icrs')
         obj_altaz = obj.transform_to(altaz_frame)
-        plt.plot(all_times.datetime, obj_altaz.alt.deg, label=f"Object: {coord_str}")
+        plt.plot(all_times.datetime, obj_altaz.alt.deg, label=f"Object: {coord}")
 
     moon = get_body('moon', time=all_times, location=observer_location)
     moon_altaz = moon.transform_to(altaz_frame)
     plt.plot(all_times.datetime, moon_altaz.alt.deg, label='Moon', color='red')
 
-    # Final plot formatting
-    plt.axhline(0, color='gray', linestyle='--', label='Horizon')
     plt.title("Altitude Plot (Object and Moon)")
     plt.xlabel("Time")
     plt.ylabel("Altitude (degrees)")
+    plt.axhline(0, color='gray', linestyle='--', label='Horizon')
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
     plt.xticks(rotation=45)
-    plt.savefig('altitude_plot.png')
+    plt.savefig('staralt.png')
     plt.show()
 
